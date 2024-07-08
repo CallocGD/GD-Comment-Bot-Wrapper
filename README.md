@@ -28,7 +28,7 @@ def on_comment_banned(ctx:DCBot, ban:CommentBanned):
 # The most basic command in the book....
 @bot.command
 async def diceroll(ctx:DCBot, comment:LevelComment)
-    return await ctx.send(comment, "your rolled a {random.randint(1,6)}")
+    return await ctx.send(comment, f"your rolled a {random.randint(1,6)}")
 ```
 
 Even when the bot becomes commentbanned it has a smart backup-system inplace that will immediately send a 

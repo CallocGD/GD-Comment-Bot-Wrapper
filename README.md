@@ -9,7 +9,7 @@ It includes a very friendly coding atmosphere not seen ever in GD Bot programmin
 ```py
 from discord_webhook import AsyncDiscordWebhook
 import json, random
-from gd import CommentBanned
+from gd import CommentBanned, LevelComment
 from dcbot import DCBot
 WEBHOOK_LINK = "<your discord webhook>"
 

@@ -5,6 +5,11 @@ the source code here to anyone who wishes to continue my legacy that I've pretty
 
 It includes a very friendly coding atmosphere not seen ever in GD Bot programming ever before
 
+## Note
+- I highly encourage you to fork this code off as there maybe some sneaky bugs that I didn't patch or 
+could be easily executed better.
+- I'll make a new framework when nekit releases gdpy2 which he plans to make very soon. Hopefully he will add socks5 support. 
+
 ## Some Cleaver Examples include the following
 ```py
 from discord_webhook import AsyncDiscordWebhook

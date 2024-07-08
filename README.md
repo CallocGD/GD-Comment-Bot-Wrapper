@@ -1,5 +1,5 @@
 # GD Comment Bot Wrapper
-My Super Secret Framework for build Geometry dash comment bots with commands inplace.
+My Super Secret Framework for building Geometry dash comment bots with commands inplace.
 At this point robtop has pretty much smothered the majority of my free proxies so I'm dumping 
 the source code here to anyone who wishes to continue my legacy that I've pretty much left behind.
 

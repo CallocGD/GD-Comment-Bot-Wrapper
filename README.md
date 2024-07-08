@@ -33,3 +33,10 @@ async def diceroll(ctx:DCBot, comment:LevelComment)
 
 Even when the bot becomes commentbanned it has a smart backup-system inplace that will immediately send a 
 dm to the user instead so that the bot remains alive for as long as possible without failure. Special event callbacks like in discordpy as demonstrated above are also inplace to help with this.
+
+
+## To The Eldermods
+I am not legally responsible for any damage caused by this code (SEE THE MIT LICENSE) or for any skid or developer who winds up using this framework
+weather that be for the purpose of good or entertainment (I sure hope people use this for good). I am not responsible for people 
+using it for nefarious reasons. I have only implemented/dumped my code off here for educational purposes only, please take my words with a grain of salt.
+

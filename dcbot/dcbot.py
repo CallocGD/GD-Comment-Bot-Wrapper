@@ -107,7 +107,8 @@ class DCBot(Bot[User]):
 
     async def send(self, to: LevelComment, text: str):
         # This loop is used whenever proxy failure occurs so we can rotate on the event on_dead_proxy
-        # If we fail after 10 times it's best to quit execution of the command then cause the bot to breakdown...
+        # If we fail after 10 times it's best to quit execution of the command then otherwise the bot could be caught 
+        # in endless amounts of execution...
         for _ in range(10):
             if not self.banned:
                 try:

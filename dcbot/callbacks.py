@@ -121,18 +121,20 @@ class Context(Generic[SenderT]):
 
     def command(
         self,
-        func: Callable[["Context", "SenderT"], Awaitable[None]],
         name: Optional[str] = None,
     ):
         """Used to write clean/organized commands..."""
-        assert asyncio.iscoroutinefunction(func), f"{func.__name__} is not asynchronous"
-        cmd = Command(self, func, name, not_it=self.not_it)
-        for p in self.prefixes:
-            cmd_name = p + cmd.name
-            if cmd_name in self.commands.keys():
-                raise RuntimeError(f"{cmd_name} was already written")
-            self.commands[p + cmd.name] = cmd
-        return func
+        
+        def decorator(func: Callable[["Context", "SenderT"], Awaitable[None]]):
+            assert asyncio.iscoroutinefunction(func), f"{func.__name__} is not asynchronous"
+            cmd = Command(self, func, name, not_it=self.not_it)
+            for p in self.prefixes:
+                cmd_name = p + cmd.name
+                if cmd_name in self.commands.keys():
+                    raise RuntimeError(f"{cmd_name} was already written")
+                self.commands[p + cmd.name] = cmd
+            return func
+        return decorator
 
     def event(
         self,

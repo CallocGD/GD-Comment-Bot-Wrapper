@@ -37,7 +37,7 @@ class UnsafeAbort(Exception):
 
 
 class DCBot(Bot[User]):
-    """Dailychat Bot Class Object, Used to write Dailychat bots with minimal effor"""
+    """Dailychat Bot Class Object, Used to write Dailychat bots with minimal effort"""
 
     not_it = ["ctx", "comment"]
 
@@ -110,10 +110,22 @@ class DCBot(Bot[User]):
             self.client = ProxyClient(proxy_url=proxy_url)
         else:
             self.client = Client()
+
         if not proxy_url or self.vpn:
             print(
                 "[!] WARNING GOING IN WITHOUT A VPN OR A PROXY IS DANGEROUS, BOT AT YOUR OWN RISK"
             )
+            
+            # Save the user if possible before starting up...
+            
+            x = None
+            while (x is None) or (x not in ["y", "n", "yes", "no"]):
+                x = input("Exit to save yourself now? y/n? ").lower()
+
+            # exit if yes
+            if x in ["y", "yes"]:
+                return 
+
         await self.main()
 
     def set_new_proxy(self, proxy_url:str):
@@ -209,6 +221,22 @@ class DCBot(Bot[User]):
 
         return self.event(func, "comment")
 
+
+    async def on_start_event(self, level:Level):
+        pass
+
+    def on_start(self, func:GDEvent):
+        """callback for when gd account has been sucessfully logged in and the target daily level was obtained        
+    :: 
+
+        @bot.on_start
+        async def bot_online(ctx:DCBot, level:Level):
+            print(f"dailychat bot is now online on level: {level.name}")
+
+    ::
+        """
+        return self.event(func=func, name="start_event")
+
     async def on_dead_proxy_event(self):
         pass
 
@@ -278,7 +306,7 @@ class DCBot(Bot[User]):
         await self.client.session.http.ensure_session()
         assert not self.client.session.http._session.closed
         await self.client.try_login(self._username, self._password)
-        assert self.client.is_logged_in()
+        assert self.client.is_logged_in(), "Invalid credentials passed"
         self.no_abort = True
 
         async def on_daily_comment(daily: Level, comment: LevelComment):
@@ -310,6 +338,8 @@ class DCBot(Bot[User]):
     
 
         daily = await self.client.get_daily()
+        
+        await self.on_start_event(daily)
 
         cache: list[int] = []
         while self.no_abort:

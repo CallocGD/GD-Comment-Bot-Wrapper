@@ -8,11 +8,11 @@ from gd import (
     Level,
     Role,
     MissingAccess,
-    IconType,
 )
 from string import ascii_letters, digits
 import random
 from getpass import getpass
+
 
 # -- Our Module --
 from .callbacks import Bot, Context
@@ -22,7 +22,8 @@ GDEvent = Callable[[Bot], Awaitable[None]]
 
 
 def obfuscate_text(text: str, left: int = 0, right=4):
-    obfuscate = lambda size: "".join(random.choices(ascii_letters + digits, k=size))
+    def obfuscate(size:int):
+        return "".join(random.choices(ascii_letters + digits, k=size))
     out = text
     if right:
         out = text + " " + obfuscate(right)
@@ -54,6 +55,8 @@ class DCBot(Bot[User]):
         """Do not abort the from the main loop"""
         self.banned_users: set[int] = set()
         """banned users cannot execute commands..."""
+        self.client = None
+
 
     def prepare_to_abort(self):
         """aborts the bot gracefully after reading the comment's pages
@@ -69,15 +72,23 @@ class DCBot(Bot[User]):
     def name(self):
         """Bot's username"""
         return self._username
+    
+
+    def abort(self):
+        """Abort execution and unplug the bot, There's no use in continuing after this has been called."""
+        raise UnsafeAbort("Aborted Execution by Developer")
 
     def ban_user(self, user: Union[LevelComment, User, int]):
         """Bans a user from using the bot this should be done by the account_id attribute"""
         if isinstance(user, int):
             self.banned_users.add(user)
+        elif isinstance(user, str):
+            self.banned_users.add(hash(user))
         elif isinstance(user, User):
             self.banned_users.add(user.account_id)
         else:
             self.banned_users.add(user.author.account_id)
+        
 
     def unban_user(self, user: Union[LevelComment, User, int]):
         """Unbans a user, the user banned will be allowed to use the bot again"""
@@ -105,10 +116,16 @@ class DCBot(Bot[User]):
             )
         await self.main()
 
+    def set_new_proxy(self, proxy_url:str):
+        if isinstance(self.client, ProxyClient):
+            self.client.rotate_proxy(proxy_url, rdns=True)
+        else:
+            raise RuntimeError("Proxy Could not be rotated because client does not need them.")
+         
+
     async def send(self, to: LevelComment, text: str):
         # This loop is used whenever proxy failure occurs so we can rotate on the event on_dead_proxy
-        # If we fail after 10 times it's best to quit execution of the command then otherwise the bot could be caught 
-        # in endless amounts of execution...
+        # If we fail after 10 times it's best to quit execution of the command then cause the bot to breakdown...
         for _ in range(10):
             if not self.banned:
                 try:
@@ -120,10 +137,13 @@ class DCBot(Bot[User]):
                     self.banned = True
                     # Invoke the one-time only event...
                     await self.on_comment_banned_event(ban)
+                    await asyncio.sleep(0.005)
+
                 except COMMON_PROXY_ERRORS:
                     # Rotate Our Dead proxy and quickly try a new one this will not run
                     # if we are using a vpn instead...
                     await self.on_dead_proxy_event()
+                    await asyncio.sleep(0.005)
                     continue  # Now Try sending another message
 
             # Backup method if we're banned...
@@ -134,10 +154,14 @@ class DCBot(Bot[User]):
                 )
             except COMMON_PROXY_ERRORS:
                 await self.on_dead_proxy_event()
+                await asyncio.sleep(0.005)
                 continue
             except MissingAccess:
                 # We are likely blocked at this point no use in continueing
                 break
+            
+           
+
         # TODO: Raise an error or notice of failure or another event of some sort after the loop fails to send anything to the user...
 
     def on_abort(self, func: Callable[[Context], Awaitable[None]]):
@@ -159,6 +183,31 @@ class DCBot(Bot[User]):
                 print("{authority.author.name} is in dailychat")
         """
         return self.event(func, "authority")
+
+
+    async def on_comment(self, comment:LevelComment):
+        pass
+
+    async def on_comment_event(self, func: Callable[[Context], Awaitable[None]]):
+        """the Event can be ran when a new comment is send
+
+        ::
+
+            from discord_webhook import AsyncDiscordWebhook
+
+            WEBHOOK_LINK = "<your discord webhook>"
+            ...
+
+            @bot.on_comment
+            async def log_dailychat(ctx:DCBot, comment:LevelComment):
+                webhook = AsyncDiscordWebhook(
+                    url=WEBHOOK_LINK,
+                    content=f"{comment.author.name}: {comment.content}"
+                )
+                await webhook.execute()
+        """
+
+        return self.event(func, "comment")
 
     async def on_dead_proxy_event(self):
         pass
@@ -208,7 +257,6 @@ class DCBot(Bot[User]):
 
     def command(
         self,
-        func: Callable[[Context, LevelComment], Awaitable[None]],
         name: Optional[str] = None,
     ):
         """A Command that your bot can run
@@ -219,10 +267,11 @@ class DCBot(Bot[User]):
                 await ctx.send(comment, f"Pong!")
 
         """
-        return super().command(func, name)
+        # func: Callable[[Context, LevelComment], Awaitable[None]],
+        return super().command(name=name)
 
-    def help_command(self, func):
-        return self.command(func, "help")
+    def help_command(self):
+        return self.command(name="help")
 
     async def main(self):
         """Do the main part and setup for chat listening..."""
@@ -234,13 +283,18 @@ class DCBot(Bot[User]):
 
         async def on_daily_comment(daily: Level, comment: LevelComment):
             # view all comments as a part of debugging...
-            print(comment.author.name + ":" + comment.content)
+            # print(comment.author.name + ":" + comment.content)
+            
+            if comment.author.id in self.banned_users:
+                # DO NOT ALLOW BANNED USERS TO DO ANYTHING
+                return
+
             if comment.author.role == Role.ELDER_MODERATOR:
                 # dispatch on the authority event...
                 await self.on_authority_event(comment)
             try:
                 start, end = comment.content.split(" ", 1)
-            except:
+            except (ValueError, KeyError, TypeError):
                 start = comment.content
                 end = ""
             cmd = self.commands.get(start)
@@ -256,16 +310,16 @@ class DCBot(Bot[User]):
     
 
         daily = await self.client.get_daily()
-        # data = await self.client.post_level_comment(
-        #     daily, "Hello There Everyone I am :D I am now online"
-        # )
+
         cache: list[int] = []
         while self.no_abort:
             try:
                 async for comment in daily.get_comments_on_page():
                     if comment.id not in cache:
                         cache.append(comment.id)
+                        await self.on_comment(comment=comment)
                         await on_daily_comment(daily, comment)
+                    await asyncio.sleep(0.005)
 
             except UnsafeAbort:
                 # force program's exit...

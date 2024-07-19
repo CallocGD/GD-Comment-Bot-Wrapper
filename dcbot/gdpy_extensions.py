@@ -24,10 +24,8 @@ from aiohttp_socks import (
     ProxyConnectionError,
     ProxyError,
 )
-from gd import Client, ResponseType, Session, HTTPClient, HTTPStatusError
-import asyncio 
+from gd import Client, Session, HTTPClient
 from attrs import field, define, frozen
-from gd.http import VALID_ERRORS
 
 __license__ = "MIT"
 __version__ = "0.0.2"

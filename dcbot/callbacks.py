@@ -91,7 +91,7 @@ class Command(Generic[BotT, SenderT]):
             elif greedy:
                 kw[_previous].append(greedy(a))
                 continue
-            if conv == list:  # we have a greedy argument
+            if conv is list:  # we have a greedy argument
                 conv = get_args(self.sig.parameters[key].annotation)[0]
                 greedy = conv
                 _previous = key
@@ -121,6 +121,7 @@ class Context(Generic[SenderT]):
 
     def command(
         self,
+        
         name: Optional[str] = None,
     ):
         """Used to write clean/organized commands..."""
@@ -151,7 +152,7 @@ class Context(Generic[SenderT]):
         """Reads all data collected and checks for commands to run..."""
         try:
             start, end = comment.split(" ", 1)
-        except:
+        except (TypeError, KeyError, ValueError):
             start = comment
             end = ""
         cmd = self.commands.get(start)
